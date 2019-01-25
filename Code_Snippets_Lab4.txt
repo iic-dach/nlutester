@@ -1,0 +1,409 @@
+*********************** LAB 04- Step 11 **********************************
+npm init
+
+*********************** LAB 04- Step 13 **********************************
+npm install --save express ejs body-parser watson-developer-cloud
+
+*********************** LAB 04- Step 15 **********************************
+// Uncomment the configuration that matches your service definition.
+// When using Region US_South the url is the default
+// const config = { 
+//   watson: {
+//    nlunderstanding: { 
+//     url: "<Url to your service>",
+//     iam_apikey: "<your API_Key>",
+//     version: "2018-11-16",
+//     }
+//   } 
+// }; 
+
+// var config = { 
+//   watson: {
+//    nlunderstanding: { 
+//       url: "<Url to your service>"
+//       username: "<your service username>", 
+//       password: "<your service password", 
+//       version: "2018-11-16",
+//     }
+//   } 
+// }; 
+
+module.exports = config;
+
+*********************** LAB 04- Step 16 **********************************
+exports.setSelection = (items, selectedItems) => {
+  const selection = [];
+  items.forEach(f => {
+    if (selectedItems.indexOf(f) > -1) {
+      selection.push(true);
+    } else {
+      selection.push(false);
+    }
+  });
+  return selection;
+}
+
+// Builds a Javascript Object from the request Data
+exports.buildFeatureRequest = (features, model) => {  
+  let reqFeatures = {
+    features: {}
+  };  
+  features.forEach(f => {
+    if (f === 'entities' || f === 'relations') {
+      if (model[f]) {
+        reqFeatures.features[f] = {
+          model: model.ids[0]
+        };
+      } else {
+        reqFeatures.features[f] = {};
+      }
+    } else {
+      reqFeatures.features[f] = {};
+    }
+  });
+  return reqFeatures;
+};
+
+*********************** LAB 04- Step 17 **********************************
+const path = require('path');
+
+const express = require('express');
+const bodyParser = require('body-parser');
+
+const app = express();
+app.use(bodyParser.urlencoded({ extended: false }));
+app.use(express.static(path.join(__dirname, 'public')));
+
+const port = process.env.PORT || 3000;
+
+app.set('view engine', 'ejs');
+app.set('views', 'views');
+
+const watsonRoutes = require('./routes/watson');
+
+app.use(watsonRoutes);
+
+app.use(function (request, response) {
+  response.status(404).render("404");
+});
+
+app.listen(port, () => {
+  console.log('Express app started on port ' + port);
+})
+
+*********************** LAB 04- Step 18 **********************************
+const express = require('express');
+
+const watsonController = require('../controllers/watson');
+
+const router = express.Router();
+
+router.get('/', watsonController.getIndex);
+
+router.post('/', watsonController.postNlu);
+
+router.get('/getmodel', watsonController.getNluModel);
+
+module.exports = router;
+
+*********************** LAB 04- Step 19 **********************************
+const NaturalLanguageUnderstandingV1 = require('watson-developer-cloud/natural-language-understanding/v1');
+
+const config = require('../config');
+const { setSelection, buildFeatureRequest } = require('../utils/helpers');
+
+const nlu = new NaturalLanguageUnderstandingV1(config.watson.nlunderstanding);
+
+// fixed values for rendered page
+const features = ["categories", "concepts","emotion", "entities", 
+    "keywords", "metadata", "relations", "semantic_roles" ];
+const inputTypes = ["url", "text"];
+
+let model = {
+  label: '',
+  ids: [''],
+  selected: false,
+  entities: false,
+  relations: false
+}
+
+*********************** LAB 04- Step 20 **********************************
+exports.getIndex = (req, res, next) => {
+  let result = '';
+  let bodyText = '';
+  model.selected = false;
+  model.entities = false;
+  model.relations = false;
+  res.render('index', {
+    result: result,
+    bodyText: bodyText,
+    features: features,
+    inputTypes: inputTypes,
+    fselected: setSelection(features, features[3]),
+    iselected: setSelection(inputTypes, inputTypes[1]),
+    model: model
+  });
+};
+
+*********************** LAB 04- Step 21 **********************************
+exports.getNluModel = (req, res, next) => {
+  nluListModels()
+    .then(response => {
+      if (response.models.length > 0) {
+        model.label = 'Model: '
+        model.ids[0] = response.models[0].model_id;
+        console.log(model.ids[0]);
+        res.send({modelId: model.ids[0]});
+      } else {
+        console.log("no model deployed to service");
+        res.send({text: "no model deployed to service"});
+      }   
+    })
+    .catch(err => {
+      console.log('error:', err.message);
+      res.status(200).send({text: "checkModel(): " + err.message});
+    });
+};
+
+*********************** LAB 04- Step 22 **********************************
+exports.postNlu = (req, res, next) => {
+  if (!req.body.inputType || !req.body.body || !req.body.features) {
+    res.status(400).send("All fields required!");
+    return;
+  }
+  const bodyText = req.body.body;
+  let receivedFeatures;
+  model.selected = false;
+  model.entities = false;
+  model.relations = false;
+  if (req.body.mlModel) {
+    model.selected = true;
+    if (req.body.mlEntities) {
+      model.entities = true;
+    }
+    if (req.body.mlRelations) {
+      model.relations = true;
+    }
+  }
+  if (Array.isArray(req.body.features)) {
+    receivedFeatures = req.body.features;
+  } else {
+    receivedFeatures = req.body.features.split(',');
+  }
+  reqFeatures = buildFeatureRequest(receivedFeatures, model);
+  const parameters = {
+    [req.body.inputType]: bodyText,
+    features: reqFeatures.features
+  }
+  nluAnalyze(parameters)
+    .then(response => {
+      result = JSON.stringify(response, null, 2);
+      res.status(200).render("index",{
+        result: result,
+        bodyText: bodyText,
+        inputTypes: inputTypes,
+        features: features,
+        fselected: setSelection(features, req.body.features),
+        iselected: setSelection(inputTypes, req.body.inputType),
+        model: model
+      });
+    })
+    .catch(err => {
+      result = JSON.stringify(err, null, 2);
+      res.status(200).render("index",{
+        result: result,
+        bodyText: bodyText,
+        inputTypes: inputTypes,
+        features: features,
+        fselected: setSelection(features, req.body.features),
+        iselected: setSelection(inputTypes, req.body.inputType),
+        model: model
+      });
+    });
+
+};
+
+*********************** LAB 04- Step 23 **********************************
+exports.setSelection = (items, selectedItems) => {
+  const selection = [];
+  items.forEach(f => {
+    if (selectedItems.indexOf(f) > -1) {
+      selection.push(true);
+    } else {
+      selection.push(false);
+    }
+  });
+  return selection;
+}
+
+// Builds a Javascript Object from the request Data
+exports.buildFeatureRequest = (features, model) => {  
+  let reqFeatures = {
+    features: {}
+  };  
+  features.forEach(f => {
+    if (f === 'entities' || f === 'relations') {
+      if (model[f]) {
+        reqFeatures.features[f] = {
+          model: model.ids[0]
+        };
+      } else {
+        reqFeatures.features[f] = {};
+      }
+    } else {
+      reqFeatures.features[f] = {};
+    }
+  });
+  return reqFeatures;
+};
+
+*********************** LAB 04- Step 25 **********************************
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>IBM EAG NLU-Tester</title>
+    <link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css">
+  </head>
+<body class="container">
+  <h2>
+    IBM EAG NLU-Tester
+  </h2>
+
+*********************** LAB 04- Step 26 **********************************
+  <p><small>IBM Ecosystem Advocacy Group – 2018</small></p>
+</body>
+</html>
+
+*********************** LAB 04- Step 27 **********************************
+<% include header %>
+<h2>404! Page not found.</h2>
+<% include footer %>
+
+*********************** LAB 04- Step 28 **********************************
+<% include header %>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+<script src="../js/jqhelpers.js"></script>
+<h3>Analyze text with IBM Watson Natural Language Understanding service</h3>
+<form method="post" role="form">
+  <hr>
+  <div class="form-group" id="inputType">
+  <% if (inputTypes.length) { %>
+    <% for(var i=0; i < inputTypes.length; i++) { %>
+     <input style="margin-right: 5px" type="radio" id=<%= inputTypes[i] %> name="inputType" value=<%= inputTypes[i] %> <%= iselected[i] ? "checked" : "" %>>
+      <label style="margin-right: 5px" for=<%= inputTypes[i] %>><%= inputTypes[i]%></label>
+    <% } %>
+  <% } %>
+  </div>
+  <div class="form-group checkbox-group required" id="features">
+  <% if (features.length) { %>
+    <% for(var x=0; x < features.length; x++) { %>
+      <input style="margin-right: 5px" type="checkbox" id=<%= features[x] %> name="features" value=<%= features[x] %> <%= fselected[x] ? "checked" : "" %>>
+      <label style="margin-right: 5px" for=<%= features[x] %>><%= features[x] %></label>
+    <% } %>
+  <% } %>
+  </div>
+  <div class="form-group" style="display:none; margin-left: 20px" id="modelGroup">
+      <input style="margin-right: 5px" type="checkbox" id="mlModel" name="mlModel" value="mlModel" <%= model.selected ? "checked" : "" %>>
+      <label style="margin-right: 5px" id="modelLabel" for="mlModel"><%= model.label + model.ids[0] %></label>
+      <div style="display:none; margin-left: 20px" id="mlEntGroup">
+        <input style="margin-right: 5px" type="checkbox" id="mlEntities" name="mlEntities" value="mlEntities" <%= model.entities ? "checked" : "" %>>
+        <label style="margin-right: 5px" for="mlEntities">Entities</label>
+      </div>
+      <div style="display:none; margin-left: 20px" id="mlRelGroup">
+        <input style="margin-right: 5px" type="checkbox" id="mlRelations" name="mlRelations" value="mlRelations" <%= model.relations ? "checked" : "" %>>
+        <label style="margin-right: 5px" for="mlRelations">Relations</label>
+      </div>
+  </div>
+  <hr>
+  <div class="form-group">
+    <label for="content">Enter text or url</label>
+    <textarea class="form-control" id="body" name="body" placeholder="Enter text or an URL." rows="3" required><%= bodyText %></textarea>
+  </div> 
+  <div class="form-group">
+    <input type="submit" id="submit" value="Post entry" class="btn btn-primary">
+    <input type="button" id="reload" value="Page reset" class="btn btn-primary">
+  </div>
+</form>
+<p><small>Result:</small></p>
+<div><pre id="result"><%= result %></pre></div>
+<script>
+  $( document ).ready(documentReady);
+ 
+  $('#features').click(checkFeatures);
+
+  $("#modelGroup").click(checkModel);
+
+  $('#reload').click(function () {
+    window.location.replace("/");
+  });
+</script>
+<% include footer %>
+
+*********************** LAB 04- Step 29 **********************************
+function documentReady() {
+    $('#mlEntGroup').toggle(false);
+    $('#mlRelGroup').toggle(false);
+    checkFeatures();
+    if (($("#modelLabel").text().indexOf("Model:") != 0) && ($("#modelLabel").text().indexOf("no model") != 0)) {
+      $('#modelGroup').toggle(false);
+      getModel();
+    }
+  };
+
+function checkFeatures(){
+  if($('div.checkbox-group.required :checkbox:checked').length == 0 ) {
+    $('#submit').prop('disabled', true);
+  } else {
+    $('#submit').prop('disabled', false);
+    checkModel();
+  }
+  if ($("#modelLabel").text().indexOf("Model:") == 0) {
+    if($("#entities").is(':checked') || $("#relations").is(':checked')) {
+      $('#modelGroup').toggle(true);
+    } else {
+      $('#modelGroup').toggle(false);
+      $('#mlModel').prop("checked", false);
+      $('#mlEntities').prop("checked", false);
+      $('#mlRelations').prop("checked", false);
+    }
+  }
+}
+
+function checkModel (){
+  if ($("#modelLabel").text().indexOf("Model:") === 0) {
+    if($("#mlModel").is(':checked') && !$("#mlEntities").is(':checked') && !$("#mlRelations").is(':checked')) {
+      $('#submit').prop('disabled', true);
+    } else {
+      $('#submit').prop('disabled', false);
+    }
+    if($("#mlModel").is(':checked') && $("#entities").is(':checked')) {
+      $('#mlEntGroup').toggle(true);
+    } else {
+      $('#mlEntGroup').toggle(false);
+      $('#mlEntities').prop("checked", false);
+    }
+    if($("#mlModel").is(':checked') && $("#relations").is(':checked')) {
+      $('#mlRelGroup').toggle(true);
+    } else {
+      $('#mlRelGroup').toggle(false);
+      $('#mlRelations').prop("checked", false);
+    }
+  } else {
+    $('#modelGroup').toggle(false);
+  }
+}
+
+function getModel() {
+  $.get( "/getmodel", function( data ) {
+    if (data.hasOwnProperty('modelId')) {
+      $("#modelLabel").text("Model: " + data.modelId);
+      $('#modelGroup').toggle(true);
+    } else {
+      $("#result").text(data.text);
+    }
+  });
+}
+
+*********************** LAB 04- Step 30 **********************************
+node app.js

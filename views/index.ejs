@@ -1,0 +1,58 @@
+<% include header %>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+<script src="../js/jqhelpers.js"></script>
+<h3>Analyze text with IBM Watson Natural Language Understanding service</h3>
+<form method="post" role="form">
+  <hr>
+  <div class="form-group" id="inputType">
+  <% if (inputTypes.length) { %>
+    <% for(var i=0; i < inputTypes.length; i++) { %>
+     <input style="margin-right: 5px" type="radio" id=<%= inputTypes[i] %> name="inputType" value=<%= inputTypes[i] %> <%= iselected[i] ? "checked" : "" %>>
+      <label style="margin-right: 5px" for=<%= inputTypes[i] %>><%= inputTypes[i]%></label>
+    <% } %>
+  <% } %>
+  </div>
+  <div class="form-group checkbox-group required" id="features">
+  <% if (features.length) { %>
+    <% for(var x=0; x < features.length; x++) { %>
+      <input style="margin-right: 5px" type="checkbox" id=<%= features[x] %> name="features" value=<%= features[x] %> <%= fselected[x] ? "checked" : "" %>>
+      <label style="margin-right: 5px" for=<%= features[x] %>><%= features[x] %></label>
+    <% } %>
+  <% } %>
+  </div>
+  <div class="form-group" style="display:none; margin-left: 20px" id="modelGroup">
+      <input style="margin-right: 5px" type="checkbox" id="mlModel" name="mlModel" value="mlModel" <%= model.selected ? "checked" : "" %>>
+      <label style="margin-right: 5px" id="modelLabel" for="mlModel"><%= model.label + model.ids[0] %></label>
+      <div style="display:none; margin-left: 20px" id="mlEntGroup">
+        <input style="margin-right: 5px" type="checkbox" id="mlEntities" name="mlEntities" value="mlEntities" <%= model.entities ? "checked" : "" %>>
+        <label style="margin-right: 5px" for="mlEntities">Entities</label>
+      </div>
+      <div style="display:none; margin-left: 20px" id="mlRelGroup">
+        <input style="margin-right: 5px" type="checkbox" id="mlRelations" name="mlRelations" value="mlRelations" <%= model.relations ? "checked" : "" %>>
+        <label style="margin-right: 5px" for="mlRelations">Relations</label>
+      </div>
+  </div>
+  <hr>
+  <div class="form-group">
+    <label for="content">Enter text or url</label>
+    <textarea class="form-control" id="body" name="body" placeholder="Enter text or an URL." rows="3" required><%= bodyText %></textarea>
+  </div> 
+  <div class="form-group">
+    <input type="submit" id="submit" value="Post entry" class="btn btn-primary">
+    <input type="button" id="reload" value="Page reset" class="btn btn-primary">
+  </div>
+</form>
+<p><small>Result:</small></p>
+<div><pre id="result"><%= result %></pre></div>
+<script>
+  $( document ).ready(documentReady);
+ 
+  $('#features').click(checkFeatures);
+
+  $("#modelGroup").click(checkModel);
+
+  $('#reload').click(function () {
+    window.location.replace("/");
+  });
+</script>
+<% include footer %>
