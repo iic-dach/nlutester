@@ -224,37 +224,30 @@ exports.postNlu = (req, res, next) => {
 };
 
 *********************** LAB 04- Step 23 **********************************
-exports.setSelection = (items, selectedItems) => {
-  const selection = [];
-  items.forEach(f => {
-    if (selectedItems.indexOf(f) > -1) {
-      selection.push(true);
-    } else {
-      selection.push(false);
-    }
-  });
-  return selection;
-}
-
-// Builds a Javascript Object from the request Data
-exports.buildFeatureRequest = (features, model) => {  
-  let reqFeatures = {
-    features: {}
-  };  
-  features.forEach(f => {
-    if (f === 'entities' || f === 'relations') {
-      if (model[f]) {
-        reqFeatures.features[f] = {
-          model: model.ids[0]
-        };
+// Convert nlu.listModels() to Promise
+nluListModels = () => {
+  return new Promise((resolve, reject) => {
+    nlu.listModels({}, (err, res) => {
+      if (err) {
+        console.log('listModel: ' + err);
+        reject(err);
       } else {
-        reqFeatures.features[f] = {};
+        resolve(res);
       }
-    } else {
-      reqFeatures.features[f] = {};
-    }
+    });
   });
-  return reqFeatures;
+};
+// convert nlu.analyze() to a promise
+nluAnalyze = (params) => {
+  return new Promise((resolve, reject) => {
+    nlu.analyze(params, (err, res) => {
+      if (err) {
+        reject(err);
+      } else {
+        resolve(res);
+      }
+    });
+  });
 };
 
 *********************** LAB 04- Step 25 **********************************
