@@ -1,5 +1,5 @@
 applications:
-- name: xxxnlu-demo
+- name: kpsnlu-demo
 path: .
 buildpack: sdk-for-nodejs
 command: node app.js

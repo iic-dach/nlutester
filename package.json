@@ -13,6 +13,10 @@
     "body-parser": "^1.18.3",
     "ejs": "^2.6.1",
     "express": "^4.16.4",
-    "watson-developer-cloud": "^3.16.1"
+    "ibm-watson": "^4.2.0"
+  },
+  "engines": {
+    "node": "^10.15.0",
+    "npm": "^6.4.1"
   }
 }

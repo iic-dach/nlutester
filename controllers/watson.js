@@ -1,4 +1,4 @@
-const NaturalLanguageUnderstandingV1 = require('watson-developer-cloud/natural-language-understanding/v1');
+const NaturalLanguageUnderstandingV1 = require('ibm-watson/natural-language-understanding/v1');
 
 const config = require('../config');
 const { setSelection, buildFeatureRequest } = require('../utils/helpers');
