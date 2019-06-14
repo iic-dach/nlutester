@@ -2,7 +2,7 @@
 npm init
 
 *********************** LAB 04- Step 13 **********************************
-npm install --save express ejs body-parser watson-developer-cloud
+npm install --save express ejs body-parser ibm-watson
 
 *********************** LAB 04- Step 15 **********************************
 // Uncomment the configuration that matches your service definition.
