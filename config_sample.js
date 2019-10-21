@@ -5,7 +5,7 @@
 //    nlunderstanding: { 
 //     url: "<Url to your service>",
 //     iam_apikey: "<your API_Key>",
-//     version: "2018-11-16",
+//     version: "2019-07-12",
 //     }
 //   } 
 // }; 
@@ -16,7 +16,7 @@
 //       url: "<Url to your service>"
 //       username: "<your service username>", 
 //       password: "<your service password", 
-//       version: "2018-11-16",
+//       version: "2019-07-12",
 //     }
 //   } 
 // }; 

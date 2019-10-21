@@ -10,13 +10,9 @@
   "author": "Klaus-Peter Schlotter",
   "license": "ISC",
   "dependencies": {
-    "body-parser": "^1.18.3",
-    "ejs": "^2.6.1",
-    "express": "^4.16.4",
-    "ibm-watson": "^4.2.0"
-  },
-  "engines": {
-    "node": "^10.15.0",
-    "npm": "^6.4.1"
+    "body-parser": "^1.19.0",
+    "ejs": "^2.7.1",
+    "express": "^4.17.1",
+    "ibm-watson": "^5.1.0"
   }
 }

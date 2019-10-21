@@ -1,9 +1,16 @@
 const NaturalLanguageUnderstandingV1 = require('ibm-watson/natural-language-understanding/v1');
-
+const { IamAuthenticator } = require('ibm-watson/auth');
 const config = require('../config');
 const { setSelection, buildFeatureRequest } = require('../utils/helpers');
 
-const nlu = new NaturalLanguageUnderstandingV1(config.watson.nlunderstanding);
+const nlu = new NaturalLanguageUnderstandingV1({
+  version: config.watson.nlunderstanding.version,
+  authenticator: new IamAuthenticator({
+    apikey: config.watson.nlunderstanding.iam_apikey
+  }),
+  url: config.watson.nlunderstanding.url
+})
+
 
 // fixed values for rendered page
 const features = ["categories", "concepts","emotion", "entities", 
@@ -36,11 +43,12 @@ exports.getIndex = (req, res, next) => {
 };
 
 exports.getNluModel = (req, res, next) => {
-  nluListModels()
+  nlu.listModels()
     .then(response => {
-      if (response.models.length > 0) {
+      console.log(JSON.stringify(response, null, 2));
+      if (response.result.models.length > 0) {
         model.label = 'Model: '
-        model.ids[0] = response.models[0].model_id;
+        model.ids[0] = response.result.models[0].model_id;
         console.log(model.ids[0]);
         res.send({modelId: model.ids[0]});
       } else {
@@ -83,9 +91,9 @@ exports.postNlu = (req, res, next) => {
     [req.body.inputType]: bodyText,
     features: reqFeatures.features
   }
-  nluAnalyze(parameters)
+  nlu.analyze(parameters)
     .then(response => {
-      result = JSON.stringify(response, null, 2);
+      result = JSON.stringify(response.result, null, 2);
       res.status(200).render("index",{
         result: result,
         bodyText: bodyText,
@@ -108,31 +116,4 @@ exports.postNlu = (req, res, next) => {
         model: model
       });
     });
-
-};
-
-// Convert nlu.listModels() to Promise
-nluListModels = () => {
-  return new Promise((resolve, reject) => {
-    nlu.listModels({}, (err, res) => {
-      if (err) {
-        console.log('listModel: ' + err);
-        reject(err);
-      } else {
-        resolve(res);
-      }
-    });
-  });
-};
-// convert nlu.analyze() to a promise
-nluAnalyze = (params) => {
-  return new Promise((resolve, reject) => {
-    nlu.analyze(params, (err, res) => {
-      if (err) {
-        reject(err);
-      } else {
-        resolve(res);
-      }
-    });
-  });
 };
