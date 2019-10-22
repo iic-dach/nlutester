@@ -11,7 +11,6 @@ const nlu = new NaturalLanguageUnderstandingV1({
   url: config.watson.nlunderstanding.url
 })
 
-
 // fixed values for rendered page
 const features = ["categories", "concepts","emotion", "entities", 
     "keywords", "metadata", "relations", "semantic_roles" ];
